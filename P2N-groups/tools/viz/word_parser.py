@@ -3,9 +3,14 @@ Parsing and formatting for words in A±.
 
 Supported token formats:
   Vertex positive : x  y  z
-  Vertex inverse  : x^-1  x^{-1}  x⁻¹
+  Vertex inverse  : X  x^-1  x^{-1}  x⁻¹   (uppercase = inverse)
   Edge positive   : e_xy  e_{xy}  e_x,y
   Edge inverse    : e_xy^-1  e_{xy}^{-1}  e_xy⁻¹
+
+Compact shorthand (no spaces):
+  XYZ   →  x⁻¹ y⁻¹ z⁻¹
+  xYz   →  x y⁻¹ z
+  XYZxyz → x⁻¹ y⁻¹ z⁻¹ x y z
 """
 
 import sys, os
@@ -67,24 +72,36 @@ def _parse_edge_base(body: str, hg):
     return edge
 
 
-def _greedy_split_vertices(s: str, hg) -> list | None:
+def _match_vertex(s: str, hg) -> tuple | None:
     """
-    Greedily consume vertex names from left to right.
-    Returns list of vertex names, or None if the string cannot be fully consumed.
+    Try to consume one vertex name from the start of s.
+    Returns (vertex, exp, remaining) or None.
+    Uppercase variant → exp=-1; lowercase → exp=+1.
+    Tries longer names first to avoid ambiguous partial matches.
     """
     ordered = sorted(hg.vertices, key=len, reverse=True)
+    for v in ordered:
+        if s.startswith(v):
+            return (v, +1, s[len(v):])
+        v_up = v.upper()
+        if v_up != v and s.startswith(v_up):
+            return (v, -1, s[len(v_up):])
+    return None
+
+
+def _greedy_split_vertices(s: str, hg) -> list | None:
+    """
+    Greedily consume vertex names (lowercase=positive, uppercase=inverse).
+    Returns list of (vertex, exp) pairs, or None if s cannot be fully consumed.
+    """
     parts = []
     remaining = s
     while remaining:
-        matched = False
-        for v in ordered:
-            if remaining.startswith(v):
-                parts.append(v)
-                remaining = remaining[len(v):]
-                matched = True
-                break
-        if not matched:
+        m = _match_vertex(remaining, hg)
+        if m is None:
             return None
+        v, exp, remaining = m
+        parts.append((v, exp))
     return parts
 
 
@@ -92,44 +109,54 @@ def parse_word(text: str, hg) -> list:
     """
     Parse a word in A± into a sigma-lifted hyperword (list of singleton HyperLetters).
 
-    Accepts space-separated tokens OR compact concatenated vertex strings.
+    Accepts space-separated tokens OR compact concatenated strings.
 
-    Space-separated token formats:
-      x  x^-1  x^{-1}  x⁻¹  e_xy  e_xy^-1  e_{xy}  e_{x,y}
+    Space-separated tokens:
+      x  X  x^-1  x^{-1}  x⁻¹  e_xy  e_xy^-1  e_{xy}  e_{x,y}
 
-    Compact shorthand (no spaces, single-char or multi-char vertices):
-      zyxzyx  →  z y x z y x (all positive)
-      xyz^-1  →  x y z^-1 (exponent applies to the last symbol)
+    Compact shorthand (no spaces):
+      XYZxyz  →  x⁻¹ y⁻¹ z⁻¹ x y z
+      xYz^-1  →  x  y⁻¹  z⁻¹   (suffix applies to last symbol)
 
     Raises ValueError with a descriptive message on bad input.
     """
     tokens = text.strip().split()
     result = []
     for token in tokens:
-        base_tok, exp = _strip_inverse_suffix(token)
+        base_tok, suffix_exp = _strip_inverse_suffix(token)
 
-        if base_tok.startswith('e_'):
-            base = _parse_edge_base(base_tok[2:], hg)
-            result.append(HyperLetter(frozenset({(base, exp)})))
+        # Edge symbol (uppercase has no meaning for edges)
+        if base_tok.startswith('e_') or base_tok.lower().startswith('e_'):
+            body = base_tok[2:] if base_tok.lower().startswith('e_') else base_tok[2:]
+            base = _parse_edge_base(body, hg)
+            result.append(HyperLetter(frozenset({(base, suffix_exp)})))
             continue
 
-        # Exact vertex match
+        # Exact vertex match (lowercase = positive)
         if base_tok in hg.vertices:
-            result.append(HyperLetter(frozenset({(base_tok, exp)})))
+            result.append(HyperLetter(frozenset({(base_tok, suffix_exp)})))
             continue
 
-        # Compact shorthand: greedily decompose into vertex names
+        # Single uppercase token = inverse of the lowercase vertex
+        if base_tok.lower() in hg.vertices and base_tok != base_tok.lower():
+            # Combine: uppercase (-1) * suffix_exp
+            result.append(HyperLetter(frozenset({(base_tok.lower(), -suffix_exp)})))
+            continue
+
+        # Compact shorthand: greedily decompose into (vertex, exp) pairs
         parts = _greedy_split_vertices(base_tok, hg)
         if parts is not None:
-            for v in parts[:-1]:
-                result.append(HyperLetter(frozenset({(v, +1)})))
-            result.append(HyperLetter(frozenset({(parts[-1], exp)})))
+            for v, exp in parts[:-1]:
+                result.append(HyperLetter(frozenset({(v, exp)})))
+            last_v, last_exp = parts[-1]
+            # suffix_exp combines with the case-derived exp: X^-1 → x^{-(-1)} = x
+            result.append(HyperLetter(frozenset({(last_v, last_exp * suffix_exp)})))
             continue
 
         raise ValueError(
             f"Unknown symbol '{base_tok}'. "
-            f"Vertices are {list(hg.vertices)}. "
-            f"Use spaces to separate elements (e.g. 'z y x') or write edges as e_xy."
+            f"Vertices: {list(hg.vertices)}. "
+            f"Use spaces between elements or write edges as e_xy."
         )
 
     return result

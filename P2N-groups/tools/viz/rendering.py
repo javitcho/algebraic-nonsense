@@ -126,3 +126,66 @@ def make_hypergraph_figure(hg) -> go.Figure:
 def estimate_html_height(word) -> int:
     """Estimate pixel height for the HTML component."""
     return max(80, 60 + 40 * math.ceil(len(word) / 6))
+
+
+def _block_span(hl, vertices, color) -> str:
+    if not hl.elements:
+        content = '&#8709;'
+    else:
+        sorted_els = interpret(hl, vertices)
+        content = ' '.join(format_se(se, vertices) for se in sorted_els)
+        content = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    return (
+        f'<span style="background:{color}; padding:2px 8px; margin:2px; '
+        f'border-radius:4px; display:inline-block; white-space:nowrap;">{content}</span>'
+    )
+
+
+def render_all_steps_html(steps, vertices, current_idx: int) -> str:
+    """
+    Render all rewriting steps as a single scrollable HTML list.
+    The current step is highlighted with a blue left border; all steps show
+    their color-coded blocks and (f1, f2, f3) measure.
+    JS scrollIntoView brings the current step into view on each rerender.
+    """
+    rows = []
+    for i, step in enumerate(steps):
+        is_current = (i == current_idx)
+        border_color = '#2980b9' if is_current else '#ddd'
+        bg = '#eaf4fb' if is_current else 'transparent'
+        f1, f2, f3 = step.measure
+
+        if step.rule is None:
+            label = '<b>Step 0</b> — Initial word (σ)'
+        else:
+            label = f'<b>Step {i}</b> — {step.description}'
+
+        blocks_html = ''.join(
+            _block_span(hl, vertices, COLORS.get(step.annotations.get(j, 'normal'), COLORS['normal']))
+            for j, hl in enumerate(step.word)
+        )
+
+        rows.append(
+            f'<div id="step-{i}" style="padding:6px 10px; margin-bottom:5px; '
+            f'border-left:3px solid {border_color}; background:{bg}; border-radius:0 4px 4px 0;">'
+            f'<div style="font-size:11px; color:#555; margin-bottom:4px;">'
+            f'{label}&nbsp;&nbsp;'
+            f'<span style="color:#999;">(f₁={f1}, f₂={f2}, f₃={f3})</span>'
+            f'</div>'
+            f'<div style="display:flex; flex-wrap:wrap; gap:0; font-size:13px; font-family:monospace;">'
+            f'{blocks_html}'
+            f'</div></div>'
+        )
+
+    all_rows = '\n'.join(rows)
+    # Scroll the highlighted step into view whenever the component rerenders
+    scroll_js = (
+        f'var el=document.getElementById("step-{current_idx}");'
+        f'if(el)el.scrollIntoView({{behavior:"smooth",block:"nearest"}});'
+    )
+    return (
+        f'<div style="height:520px; overflow-y:auto; padding:4px; font-family:sans-serif;">'
+        f'{all_rows}'
+        f'</div>'
+        f'<script>{scroll_js}</script>'
+    )

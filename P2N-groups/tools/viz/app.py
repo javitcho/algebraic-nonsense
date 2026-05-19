@@ -18,7 +18,7 @@ from tools.core.hypergraph import Hypergraph
 from tools.core.alphabet import is_vertex, total_order_key
 from tools.viz.trace import normal_form_with_trace
 from tools.viz.word_parser import parse_word, format_se, format_hyperword
-from tools.viz.rendering import render_hyperword_html, make_hypergraph_figure, estimate_html_height
+from tools.viz.rendering import render_hyperword_html, make_hypergraph_figure, estimate_html_height, render_all_steps_html
 
 st.set_page_config(page_title='P2N Normal Form Explorer', layout='wide')
 
@@ -151,8 +151,7 @@ if 'steps' in st.session_state:
     steps = st.session_state['steps']
     n = len(steps)
 
-    # Callbacks write directly to the slider's session-state key so the
-    # slider reflects the change on the next rerun.
+    # Callbacks write directly to the slider's session-state key.
     def _prev():
         st.session_state['step_slider'] = max(0, st.session_state['step_slider'] - 1)
 
@@ -170,7 +169,7 @@ if 'steps' in st.session_state:
     idx = st.session_state['step_slider']
     step = steps[idx]
 
-    # Termination measure cards
+    # Termination measure cards for the highlighted step
     f1, f2, f3 = step.measure
     if idx > 0:
         pf1, pf2, pf3 = steps[idx - 1].measure
@@ -183,22 +182,12 @@ if 'steps' in st.session_state:
     m2.metric('f₂', f2, delta=d2, delta_color='inverse')
     m3.metric('f₃', f3, delta=d3, delta_color='inverse')
 
-    # Rule description
-    if step.rule:
-        st.markdown(f'**Step {idx}:** {step.description}')
+    # Scrollable history — all steps, highlighted step scrolled into view
+    components.html(render_all_steps_html(steps, hg.vertices, idx), height=560)
+
+    # Final normal form banner
+    nf = steps[-1].word
+    if nf:
+        st.success(f'Normal form: {format_hyperword(nf, hg.vertices)}')
     else:
-        st.markdown('**Step 0:** ' + step.description)
-
-    # Color-coded word
-    html = render_hyperword_html(step.word, hg.vertices, step.annotations)
-    height = estimate_html_height(step.word)
-    components.html(html, height=height + 20)
-
-    # Final result
-    if idx == n - 1:
-        nf = steps[-1].word
-        if nf:
-            nf_str = format_hyperword(nf, hg.vertices)
-            st.success(f'Normal form: {nf_str}')
-        else:
-            st.success('Normal form: ε (identity)')
+        st.success('Normal form: ε (identity)')
