@@ -32,7 +32,7 @@ from tools.core.alphabet import is_vertex
 from tools.core.hyperletter import HyperLetter
 from tools.core.hypergraph import Hypergraph
 from tools.core.rewriter import find_applicable_rules, apply_R1, apply_R2, apply_R3
-
+import numpy as np
 
 @dataclass
 class RewritingStep:
@@ -144,6 +144,7 @@ def normal_form_with_trace(word, hg: Hypergraph):
         rules = find_applicable_rules(word, hg)
         if not rules:
             break
+        np.random.shuffle(rules)  # randomize to avoid bias in the trace
         rule = rules[0]
 
         if rule[0] == 'R3':
