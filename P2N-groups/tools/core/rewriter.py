@@ -18,6 +18,7 @@ R3 (Empty deletion):
 from tools.core.hyperletter import (
     HyperLetter, EMPTY_LETTER, is_addable, left_price, right_price
 )
+import numpy as np
 
 
 def apply_R3(word: list, i: int) -> list:
@@ -107,6 +108,7 @@ def normal_form(word: list, hypergraph) -> list:
         rules = find_applicable_rules(word, hypergraph)
         if not rules:
             break
+        np.random.shuffle(rules)  # randomize to avoid bias
         rule = rules[0]
         if rule[0] == 'R3':
             word = apply_R3(word, rule[1])
