@@ -49,13 +49,13 @@ def _alphabet_description(hg) -> str:
 
 
 def _format_step(i, step, vertices) -> str:
-    f1, f2, f3 = step.measure
+    n_V, K, T, length = step.measure
     word_str = format_hyperword(step.word, vertices)
     if step.rule is None:
         rule_str = "Initial (σ)"
     else:
         rule_str = step.description
-    return f"  step {i:2d}  [{rule_str}]  measure=({f1},{f2},{f3})  word: {word_str}"
+    return f"  step {i:2d}  [{rule_str}]  measure=(n_V={n_V},K={K},T={T},len={length})  word: {word_str}"
 
 
 def _run_trace(word_text: str, hg) -> str:
@@ -112,7 +112,7 @@ def compute_normal_form(word: str, preset: str = "heisenberg") -> str:
         preset: One of 'heisenberg', 'path', 'triangle'.
 
     Returns a full step-by-step trace with rule name, word state, and
-    termination measure (f1, f2, f3) at each step.
+    termination measure (n_V, K, T, len) at each step.
     """
     preset_key = preset.lower().strip()
     if preset_key not in PRESETS:

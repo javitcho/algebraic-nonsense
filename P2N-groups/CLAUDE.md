@@ -77,7 +77,8 @@ b^η is addable into [u] iff:
 
 A word is in **normal form** iff no rule applies:
   - No [∅] present
-  - No x^ε in block j that is addable into any earlier block i < j
+  - For every i, no x^ε ∈ block i+1 is addable into block i (**adjacent blocks
+    only** — checking all i < j is too strong and wrong)
   - No x^{-ε} in block i with x^ε in block i+1
 
 ### Correctness invariant

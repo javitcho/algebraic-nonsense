@@ -101,14 +101,14 @@ class TestApplyR3:
 
 class TestApplyR2:
     def test_cancel_adjacent_inverse_pair(self):
-        # [x^{-1}][x] → r_{x}([∅]) [∅] l_{x}([∅]) = [∅][∅][∅]
+        # [x^{-1}][x] → u=∅, v=∅, both prices ∅ → every block is empty and
+        # is omitted (spec 0.1), so the result is the empty word.
         word = [
             HyperLetter(frozenset({('x', -1)})),
             HyperLetter(frozenset({('x', +1)})),
         ]
         result = apply_R2(word, 0, ('x', +1), HEISENBERG)
-        # u = ∅, v = ∅, prices are both [∅]
-        assert result == [EMPTY_LETTER, EMPTY_LETTER, EMPTY_LETTER, EMPTY_LETTER]
+        assert result == []
         assert_invariant(word, result, HEISENBERG)
 
     def test_r2_preserves_group_element_x_inv_plus_exy_x(self):
@@ -141,20 +141,20 @@ class TestApplyR1:
 
     def test_r1_relator4_step1(self):
         """
-        Relator 4 Step 1: [y^{-1}][x] → [x + y^{-1}] [e_xy] [∅] [∅]
-        right_price(x, [y^{-1}]) = [e_xy], left_price(x, [∅]) = [∅]
+        Relator 4 Step 1: [y^{-1}][x] → [x + y^{-1}] [e_xy]
+        right_price(x, [y^{-1}]) = [e_xy]; v and left_price(x, [∅]) are both
+        empty, so (spec 0.1) both are omitted rather than written as [∅].
         """
         word = [
             HyperLetter(frozenset({('y', -1)})),
             HyperLetter(frozenset({('x', +1)})),
         ]
         result = apply_R1(word, 0, 1, ('x', +1), HEISENBERG)
+        assert len(result) == 2
         # Block 0 should be [x + y^{-1}]
         assert HyperLetter(frozenset({('x', +1), ('y', -1)})) == result[0]
         # Block 1 should be r_{x}([y^{-1}]) = [e_xy]
         assert HyperLetter(frozenset({(e_xy, +1)})) == result[1]
-        # Block 2 is [v] = [∅]
-        assert result[2] == EMPTY_LETTER
         assert_invariant(word, result, HEISENBERG)
 
 

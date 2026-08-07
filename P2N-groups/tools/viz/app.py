@@ -169,18 +169,19 @@ if 'steps' in st.session_state:
     idx = st.session_state['step_slider']
     step = steps[idx]
 
-    # Termination measure cards for the highlighted step
-    f1, f2, f3 = step.measure
+    # Termination measure cards for the highlighted step: f(w) = (n_V, K, T, len)
+    n_V, K, T, length = step.measure
     if idx > 0:
-        pf1, pf2, pf3 = steps[idx - 1].measure
-        d1, d2, d3 = f1 - pf1, f2 - pf2, f3 - pf3
+        pn_V, _, pT, plength = steps[idx - 1].measure
+        dn_V, dT, dlength = n_V - pn_V, T - pT, length - plength
     else:
-        d1 = d2 = d3 = None
+        dn_V = dT = dlength = None
 
     m1, m2, m3 = st.columns(3)
-    m1.metric('f₁', f1, delta=d1, delta_color='inverse')
-    m2.metric('f₂', f2, delta=d2, delta_color='inverse')
-    m3.metric('f₃', f3, delta=d3, delta_color='inverse')
+    m1.metric('n_V', n_V, delta=dn_V, delta_color='inverse')
+    m2.metric('T', T, delta=dT, delta_color='inverse')
+    m3.metric('len', length, delta=dlength, delta_color='inverse')
+    st.caption(f'K = {K}')
 
     # Scrollable history — all steps, highlighted step scrolled into view
     components.html(render_all_steps_html(steps, hg.vertices, idx), height=560)

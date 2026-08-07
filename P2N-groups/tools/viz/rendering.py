@@ -145,7 +145,7 @@ def render_all_steps_html(steps, vertices, current_idx: int) -> str:
     """
     Render all rewriting steps as a single scrollable HTML list.
     The current step is highlighted with a blue left border; all steps show
-    their color-coded blocks and (f1, f2, f3) measure.
+    their color-coded blocks and (n_V, K, T, len) measure.
     JS scrollIntoView brings the current step into view on each rerender.
     """
     rows = []
@@ -153,7 +153,7 @@ def render_all_steps_html(steps, vertices, current_idx: int) -> str:
         is_current = (i == current_idx)
         border_color = '#2980b9' if is_current else '#ddd'
         bg = '#eaf4fb' if is_current else 'transparent'
-        f1, f2, f3 = step.measure
+        n_V, K, T, length = step.measure
 
         if step.rule is None:
             label = '<b>Step 0</b> — Initial word (σ)'
@@ -170,7 +170,7 @@ def render_all_steps_html(steps, vertices, current_idx: int) -> str:
             f'border-left:3px solid {border_color}; background:{bg}; border-radius:0 4px 4px 0;">'
             f'<div style="font-size:11px; color:#555; margin-bottom:4px;">'
             f'{label}&nbsp;&nbsp;'
-            f'<span style="color:#999;">(f₁={f1}, f₂={f2}, f₃={f3})</span>'
+            f'<span style="color:#999;">(n_V={n_V}, K={K}, T={T}, len={length})</span>'
             f'</div>'
             f'<div style="display:flex; flex-wrap:wrap; gap:0; font-size:13px; font-family:monospace;">'
             f'{blocks_html}'
